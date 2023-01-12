@@ -1,0 +1,4 @@
+ipbase: "x.x.x."
+ubuntu_version: "20.04"
+cpus: "0-4"
+mem: "16B"

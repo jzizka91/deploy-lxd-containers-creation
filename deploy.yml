@@ -1,0 +1,30 @@
+---
+
+- name: Check all variables
+  hosts: 127.0.0.1
+  gather_facts: false
+  tasks:
+    # fails when no cname or ipnum or host given
+    - name: Check all user inputs
+      fail: msg="Variable '{{ item }}' is not defined! Use -e '{{ item }}'=XYZ"
+      when: item not in hostvars[inventory_hostname]
+      with_items:
+        - cname
+        - ipnum
+        - host
+
+    # fails when host == *all*
+    - name: Check host variable
+      fail: msg="You can't use `all` for the host variable!"
+      when: host is search("all")
+
+- name: Create container
+  hosts: "{{ host }},"
+  gather_facts: true
+  vars_files:
+    - vars/vars.yml
+  tasks:
+ 
+    # create lxd container
+    - include: tasks/create-lxd-container.yml
+

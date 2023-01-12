@@ -1,0 +1,15 @@
+# This file describes the network interfaces available on your system
+# For more information, see netplan(5).
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      addresses: [ {{ ipbase }}{{ ipnum }}/x ]
+      gateway4: x.x.x.x
+      nameservers:
+          addresses:
+              - x.x.x.x
+      routes:
+       - to: x.x.x.x/x
+         via: x.x.x.x

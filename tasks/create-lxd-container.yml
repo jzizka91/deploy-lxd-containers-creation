@@ -1,0 +1,72 @@
+---
+
+# Create or update container parameters
+- name: Create and start container
+  lxd_container:
+    name: "{{ cname }}"
+    state: started
+    source:
+      type: image
+      mode: pull
+      server: https://cloud-images.ubuntu.com/releases
+      protocol: simplestreams
+      alias: "{{ ubuntu_version }}"
+    config: '{"limits.cpu": "{{ cpus }}", "limits.memory": "{{ mem }}"}'
+    wait_for_ipv4_addresses: false
+    timeout: 600
+  register: container
+
+# wait for ssh server 
+- name: Wait a few seconds
+  pause:
+    seconds: 3
+  when: container.changed
+
+- name: Create .ssh folder
+  file:
+    path: "/var/snap/lxd/common/lxd/containers/{{ cname }}/rootfs/root/.ssh"
+    state: directory
+    owner: 1000000
+    group: 1000000
+    mode: 0700
+
+- name: Upload temporary root pubkeys
+  copy:
+    src: ../config/temporary-pubkeys
+    dest: "/var/snap/lxd/common/lxd/containers/{{ cname }}/rootfs/root/.ssh/authorized_keys"
+    owner: 1000000
+    group: 1000000
+    mode: 0600
+  when: container.changed
+
+- name: Upload network config
+  template:
+    src: ../config/01-netcfg.yaml.j2
+    dest: "/var/snap/lxd/common/lxd/containers/{{ cname }}/rootfs/etc/netplan/01-netcfg.yaml"
+    owner: root
+    group: root
+    mode: 0644
+  when: container.changed
+
+# remove old cloud-init configuration to prevent errors
+- name: Delete old network config
+  file:
+    path: "/var/snap/lxd/common/lxd/containers//{{ cname }}/rootfs/etc/netplan/50-cloud-init.yaml"
+    state: absent
+  when: container.changed
+
+# wait for sync
+- name: Wait a second
+  pause:
+    seconds: 1
+  when: container.changed
+
+- name: Restart container
+  command: "/snap/bin/lxc restart {{ cname }}"
+  when: container.changed
+
+# wait for startup
+- name: Wait a few seconds
+  pause:
+    seconds: 5
+  when: container.changed
